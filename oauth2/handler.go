@@ -448,6 +448,19 @@ func (h *Handler) TokenHandler(w http.ResponseWriter, r *http.Request) {
 		session.KID = accessTokenKeyID
 		session.DefaultSession.Claims.Issuer = strings.TrimRight(h.c.IssuerURL().String(), "/") + "/"
 		session.DefaultSession.Claims.IssuedAt = time.Now().UTC()
+		session.DefaultSession.Claims.Subject = accessRequest.GetClient().GetID()
+		session.DefaultSession.Claims.Extra = map[string]interface{}{}
+
+		for _, scope := range accessRequest.GetClient().GetScopes() {
+			if strings.HasPrefix(scope, "claim:") {
+				var items = strings.Split(scope, ":")
+				if len(items) > 2 {
+					var claim = items[1]
+					var claimValue = items[2]
+					session.DefaultSession.Claims.Extra[claim] = claimValue
+				}
+			}
+		}
 
 		for _, scope := range accessRequest.GetRequestedScopes() {
 			if h.r.ScopeStrategy()(accessRequest.GetClient().GetScopes(), scope) {
